@@ -10,41 +10,95 @@ import subprocess
 import json
 import sys
 
-REGEX = "(.*)_([0-9]+)[_\.]raw\.flac$"
+REGEX = "(.*/)?([^/]*)_([0-9]+)[_\.]raw\.flac$"
 
 
 def main():
     # Initialize variables
     uuid = None
     preserve = False
+    source = None
+    item = None
+    folder = None
+    access_key = None
+    secret_key = None
+
     # Parse command line arguments
-    opts, _ = getopt(sys.argv[1:], "", ["uuid=", "preserve"])
+    args = ["uuid=", "preserve", "source=", "item=", "folder=", "access-key=", "secret-key="]
+    legacy_args = ["no-confirm", "config=", "no-wait", "episode-input-file=", "episode-number=",
+                   "episode-title=", "episode-cover-art-file=", "auphonic-output-file-basename=",
+                   "auphonic-year=", "auphonic-preset=", "auphonic-username=", "auphonic-password=",
+                   "internetarchive-item=", "internetarchive-folder=", "internetarchive-access-key=",
+                   "internetarchive-secret-key="]
+    args.extend(legacy_args)
+    opts, _ = getopt(sys.argv[1:], "", args)
     for opt, arg in opts:
-        if opt in "--uuid":
+        if opt == "--uuid":
             uuid = arg
-        if opt in "--preserve":
+        if opt == "--preserve":
             preserve = True
+        if opt in ["--source", "--episode-input-file"]:
+            source = arg
+        if opt in ["--item", "--internetarchive-item"]:
+            item = arg
+        if opt in ["--folder", "--internetarchive-folder"]:
+            folder = arg
+        if opt in ["--access-key", "--internetarchive-access-key"]:
+            access_key = arg
+        if opt in ["--secret-key", "--internetarchive-secret-key"]:
+            secret_key = arg
+
+    good_to_go = True
+    if item is None:
+        print "Archive.org's item not specified"
+        good_to_go = False
+    if folder is None:
+        print "Archive.org's folder not specified"
+        good_to_go = False
+    if access_key is None:
+        print "Archive.org's access key not specified"
+        good_to_go = False
+    if secret_key is None:
+        print "Archive.org's secret key not specified"
+        good_to_go = False
+
+    if not good_to_go:
+        return
 
     print "PyPublish started"
-    print "Looking for source file"
     here = path.abspath(path.dirname("."))
-    sourcefiles = [f for f in listdir(here) if isfile(join(here, f)) and re.search(REGEX, f)]
-    if len(sourcefiles) == 0:
-        print "Source file not found : it should be Podcast_Name_xxx_raw.flac"
-        exit(1)
-    if len(sourcefiles) > 1:
-        print "Too many source files : %s" % sourcefiles
-        exit(2)
-    filename = sourcefiles[0]
-    filepath = join(here, filename)
+    if source is None:
+        print "Looking for source file"
+        sourcefiles = [f for f in listdir(here) if isfile(join(here, f)) and re.search(REGEX, f)]
+        if len(sourcefiles) == 0:
+            print "Source file not found : it should be Podcast_Name_xxx_raw.flac"
+            exit(1)
+        if len(sourcefiles) > 1:
+            print "Too many source files : %s" % sourcefiles
+            exit(2)
+        filename = sourcefiles[0]
+        filepath = join(here, filename)
+    else:
+        filepath = source
 
-    match = re.search(REGEX, filename)
-    prefix = match.group(1)
-    suffix = match.group(2)
+    match = re.search(REGEX, filepath)
+
+    if match.group(1) is not None:
+        here = match.group(1)
+    prefix = match.group(2)
+    suffix = match.group(3)
     podcast = prefix.replace("_", " ")
     number = int(suffix)
 
+    print here
+    print podcast
+    print number
+
     cover_art_file = join(here, "%s_%s.cover.png" % (prefix, suffix))
+
+    print cover_art_file
+
+    return
 
     now = datetime.now()
 

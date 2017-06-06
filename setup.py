@@ -45,7 +45,8 @@ setup(
     entry_points={
         'console_scripts': [
             'pypublish=pypublish:main',
+            'pyarchive=pyarchive:main',
         ],
     },
-    install_requires=['PyYAML'],
+    install_requires=['PyYAML', 'pyyaml', 'lxml'],
 )
